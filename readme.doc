@@ -1,0 +1,84 @@
+创建虚拟机步骤
+1. 登录管理节点
+cloud.bj2: l-kvm1.ops.bj2.xxx.com
+线上现在用的
+sudo -s 
+source /etc/keystone/keystonerc
+
+MIGRAGE
+nova migrate   l-ngb1.ops.bj2
+if it fails:
+    nova reset-state --active uuid
+install new compute node
+wirte in clusters/test 
+l-kvm1.ops.bj2.xx.com
+l-kvm2.ops.bj2.xx.com
+
+[controller]
+l-kvm1.ops.bj2.xx.com
+
+[compute]
+l-kvm1.ops.bj2.xx.com
+l-kvm2.ops.bj2.xx.com
+
+[all:vars]
+openstack_region =  default
+openstack_mysql_master = l-kvm1.ops.bj2.xx.com
+openstack_auth_host = l-kvm1.ops.bj2.xx.com
+openstack_glance_host = l-kvm1.ops.bj2.xx.com
+openstack_nova_master = l-kvm1.ops.bj2.xx.com
+openstack_rabbitmq_master = l-kvm1.ops.bj2.xx.com
+mysql_root_password = xxxx
+rabbitmq_admin_password = xxxx
+keystone_admin_token = xxxx
+keystone_admin_password = xxxx
+
+
+openstack_public_interface =  eth0
+openstack_vlan_start =  100
+openstack_vlan_interface =  eth1
+openstack_domain = ""
+openstack_horizon_domain =  l-kvm1.ops.bj2.xxx.com
+
+check if it add success
+    sudo nova-manage service list
+delete  compute node
+    nova-manage service disable --host=‘host’ --service=nova-network
+    nova-manage service disable --host=‘host’  --service=nova-compute
+
+    mysql> use nova;
+    delete from compute_nodes where service_id in (select id from services where host='myhost');
+    delete from services where host='myhost';
+
+虚拟机镜像处理
+创建虚拟机镜像： http://docs.openstack.org/image-guide/content/ch_creating_images_manually.html
+
+这里有几个点需要注意
+
+nozeroconf 不要忘记，不然centos会配置一个169.254.0.0/16的路由，导致metadata-api访问失败。
+镜像做好后大小会比较大可以使用：qemu-img convert -c -O qcow 镜像文件.qcow2 新文件.qcow 进行压缩
+这个压缩操作，请务必在 centos 6.x 系统上操作，否则可能出现 centos 6不能支持的 qemu feature
+改变镜像大小： http://docs.openstack.org/image-guide/content/ch_modifying_images.html
+
+由于镜像制作时，我们的的磁盘容量和最终创建虚拟机的磁盘容量不同。因此在镜像制作完成后，需要对镜像的磁盘容量进行调整。 请参考上面的链接进行操作。
+
+注意：
+
+这里用到的guestfish需要安装libguestfs-tools软件包
+同样，请务必在 centos 6.x 系统上操作，否则可能出现 centos 6不能支持的 qemu feature
+
+网络排错
+
+Linux 2.6.32 之后，iptables 会被应用与 bridge 的转发 acl。如果在 bridge 转发上出现问题请参考下面文章。 http://wiki.libvirt.org/page/Net.bridge-nf-call_and_sysctl.conf
+
+如何定位是 bridge netfilter 导致的问题，
+
+在一个非同广播域的机器（ip地址不在一个LAN的机器）上 ping 虚拟机
+在宿主机上通过 brctl show 查看 bridge 上的vlan接口和虚拟机接口
+tcpdump -i bridge接口 icmp 能看到 pingrequest 包
+tcpdump -i vnet接口 icmp 看不到 pingrequest包
+出现上述现象就表明是 bridge 转发的问题，需要调整sysctl的参数：
+
+net.bridge.bridge-nf-call-arptables = 0
+net.bridge.bridge-nf-call-ip6tables = 0
+net.bridge.bridge-nf-call-iptables = 0

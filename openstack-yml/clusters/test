@@ -1,0 +1,29 @@
+l-kvm1.ops.bj2.xx.com
+l-kvm2.ops.bj2.xx.com
+
+[controller]
+l-kvm1.ops.bj2.xx.com
+
+[compute]
+l-kvm1.ops.bj2.xx.com
+l-kvm2.ops.bj2.xx.com
+
+[all:vars]
+openstack_region =  default
+openstack_mysql_master = l-kvm1.ops.bj2.xx.com
+openstack_auth_host = l-kvm1.ops.bj2.xx.com
+openstack_glance_host = l-kvm1.ops.bj2.xx.com
+openstack_nova_master = l-kvm1.ops.bj2.xx.com
+openstack_rabbitmq_master = l-kvm1.ops.bj2.xx.com
+mysql_root_password = xxxx
+rabbitmq_admin_password = xxxx
+keystone_admin_token = xxxx
+keystone_admin_password = xxxx
+
+
+openstack_public_interface =  eth0
+openstack_vlan_start =  100
+openstack_vlan_interface =  eth1
+openstack_domain = ""
+openstack_horizon_domain =  l-kvm1.ops.bj2.xxx.com
+
